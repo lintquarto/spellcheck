@@ -61,14 +61,6 @@ local function get_deflang(meta)
 end
 
 local function run_spellcheck(lang)
-
-  -- Check if Hunspell is installed before proceeding
-  local status = os.execute('hunspell -v > /dev/null 2>&1')
-  if status ~= 0 then
-    print("Warning: Hunspell is not installed. Skipping spell check for '" .. lang .. "'.")
-    return -- Gracefully skip spell checking if Hunspell is not available
-  end
-
   -- Prepare list of collected words for Hunspell
   local keys = {}
   local wordlist = words[lang]
@@ -85,12 +77,20 @@ local function run_spellcheck(lang)
   local f = '.spellcheck.txt' --os.tmpname()
   write_words(words_to_drop, f)
 
-  local inp = table.concat(keys, '\n')
-  local outp = pandoc.pipe('hunspell', { '-l', '-d', lang, '-p', f}, inp)
-  print('Possibly misspelled words:')
-  print('--------------------------')
-  io.write(outp)
-  print('--------------------------\n')
+  -- Try to run hunspell and catch any errors
+  local success, outp = pcall(function()
+    return pandoc.pipe('hunspell', { '-l', '-d', lang, '-p', f}, table.concat(keys, '\n'))
+  end)
+
+  if success then
+    print('Possibly misspelled words:')
+    print('--------------------------')
+    io.write(outp)
+    print('--------------------------\n')
+  else
+    print("Warning: Hunspell is not installed or not accessible. Skipping spell check for '" .. lang .. "'.")
+  end
+
   os.remove(f)
 end
 
