@@ -100,4 +100,8 @@ spelld
 
 ## Example
 
-A minimal example is provided in [example.qmd](example.qmd).
+A minimal example is provided:
+
+```
+quarto render example.qmd
+```

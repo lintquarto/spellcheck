@@ -1,0 +1,8 @@
+project:
+  type: default
+filters:
+  - spellcheck
+spellcheck-lang: en_GB
+spellcheck-ignore:
+  - ignoreme
+  - MR/Z503915/1
