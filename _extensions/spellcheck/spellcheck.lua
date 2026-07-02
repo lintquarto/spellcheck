@@ -1,16 +1,30 @@
--- lua filter for spell checking
--- Copyright (C) 2017-2020 John MacFarlane, released under MIT license
--- Altered to use hunspell and work with Quarto by Christopher T. Kenny
+-- Spellcheck Pandoc/Quarto documents with Hunspell.
+-- 
+-- What this filter does:
+-- 1. Reads spellcheck settings from document metadata.
+-- 2. Collects words from the document, grouped by language.
+-- 3. Ignores configured words.
+-- 4. Runs Hunspell once per language and prints possible misspellings.
+--
+-- Expected metadata:
+--   spellcheck-lang: en_GB
+--   spellcheck-ignore:
+--     - SimPy
+--     - Quarto
+--
+-- This filter is adapted from:
+-- - John MacFarlane (MIT). https://github.com/pandoc/lua-filters/blob/master/spellcheck/spellcheck.lua.
+-- - Chrisopher Kenny (MIT). https://github.com/christopherkenny/spellcheck/blob/main/_extensions/spellcheck/spellcheck.lua.
 
--- Ensure Pandoc version supports stringify on Meta (>= 2.1)
+-- Require a Pandoc version new enough to support pandoc.utils.stringify on metadata.
 if PANDOC_VERSION == nil then
   error("ERROR: pandoc >= 2.1 required for spellcheck.lua filter")
 end
 
--- Stores words grouped by language: words[lang][word] = count
+-- Unique words grouped by language - words[lang][word] = count
 local words = {}
 
--- Words to ignore during spellcheck (user + defaults)
+-- Words to ignore even if Hunspell flags them.
 local words_to_drop = {"Doi"}
 
 -- Default language (set via document metadata)
@@ -42,7 +56,7 @@ local function write_words(tbl, path)
   return file
 end
 
--- UNUSED
+-- Check if a value exists in a list-like table
 local function in_table(tbl, value)
     if tbl == nil then
         return false
@@ -61,9 +75,7 @@ local function add_to_dict(lang, t)
   if not words[lang] then
     words[lang] = {}
   end
-  if not words[lang][t] then
-    words[lang][t] = (words[lang][t] or 0) + 1
-  end
+  words[lang][t] = (words[lang][t] or 0) + 1
 end
 
 -- Read default spellcheck language from metadata
@@ -82,21 +94,17 @@ local function run_spellcheck(lang)
   local wordlist = words[lang]
 
   for k,_ in pairs(wordlist) do
-    --if not in_table(words_to_drop, k) then
-        keys[#keys + 1] = k
-    --end
+    if not in_table(words_to_drop, k) then
+      keys[#keys + 1] = k
+    end
   end
-
-  -- Temporary file for ignore list (personal dictionary)
-  local f = '.spellcheck.txt'
-  write_words(words_to_drop, f)
 
   -- Run Hunspell via pandoc.pipe
   -- -l: list misspelled words
   -- -d: dictionary (language)
   -- -p: personal dictionary file
   local success, outp = pcall(function()
-    return pandoc.pipe('hunspell', { '-l', '-d', lang, '-p', f}, table.concat(keys, '\n'))
+    return pandoc.pipe('hunspell', { '-l', '-d', lang}, table.concat(keys, '\n'))
   end)
 
   -- Output results or warning
@@ -108,15 +116,11 @@ local function run_spellcheck(lang)
   else
     print("Warning: Hunspell is not installed or not accessible. Skipping spell check for '" .. lang .. "'.")
   end
-
-  -- Clean up temp file
-  os.remove(f)
 end
 
 -- Final step after document traversal
 -- Ensures all words are collected, then runs spellcheck per language
 local function results(el)
-  pandoc.walk_block(pandoc.Div(el.blocks), {Str = function(e) add_to_dict(deflang, e.text) end})
   for lang,_ in pairs(words) do
     run_spellcheck(lang)
   end
