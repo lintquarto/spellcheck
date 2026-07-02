@@ -2,7 +2,8 @@
 -- 
 -- What this filter does:
 -- 1. Reads spellcheck settings from document metadata.
--- 2. Collects words from the document, grouped by language.
+-- 2. Collects words from the document body using a default language, with
+--    overrides for spans and blocks that declare their own lang.
 -- 3. Ignores configured words.
 -- 4. Runs Hunspell once per language and prints possible misspellings.
 --
@@ -115,7 +116,7 @@ end
 -- Read default spellcheck language from metadata.
 -- YAML example:
 --   spellcheck-lang: en_GB
--- If the metadata field is absent, use en_US.
+-- If the metadata field is absent, use en_GB.
 -- We use stringify as metadata values are Pandoc objects, not always plain Lua
 -- strings, so pandoc.utils.stringify converts them into normal text we can use.
 local function get_deflang(meta)
