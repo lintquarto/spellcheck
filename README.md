@@ -2,10 +2,10 @@
 
 This extension provides a filter to run [Hunspell](https://hunspell.github.io/) whenever a `.qmd` file is rendered and prints potentially misspelled words to the console.
 
-The current version was amended by Amy Heather, based on earlier MIT-licensed work by John MacFarlane and Christopher Kenny:
+The current version was amended by Amy Heather, based on earlier MIT-licensed work by John MacFarlane and forked from Christopher Kenny:
 
 - John MacFarlane, *spellcheck.lua* in the Pandoc Lua filters repository: <https://github.com/pandoc/lua-filters/blob/master/spellcheck/spellcheck.lua>.
-- Christopher Kenny, Quarto spellcheck extension repository: <https://github.com/christopherkenny/spellcheck/blob/main/_extensions/spellcheck/spellcheck.lua>.
+- Christopher Kenny, Quarto spellcheck extension repository: <https://github.com/christopherkenny/spellcheck>.
 
 Amendments in this repository are also released under the MIT Licence.
 
