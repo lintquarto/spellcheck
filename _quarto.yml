@@ -1,5 +1,11 @@
 project:
-  type: default
+  type: website
+
+format:
+  html:
+    page-layout: full
+    theme: [cosmo]
+
 filters:
   - spellcheck
 spellcheck-lang: en_GB
