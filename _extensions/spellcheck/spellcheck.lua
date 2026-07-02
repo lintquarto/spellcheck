@@ -169,6 +169,23 @@ local function checkdiv(el)
 end
 
 -- ---------------------------------------------------------------------------
+-- Body text collector
+-- Once all configuration is known, this collects ordinary words from the
+-- document body only (not metadata).
+-- ---------------------------------------------------------------------------
+
+-- Walk only the document body, not metadata.
+-- This prevents values like theme names (e.g. "cosmo") from being treated
+-- as spellcheck candidates.
+local function collect_body_words(doc)
+  pandoc.walk_block(pandoc.Div(doc.blocks), {
+    Str = function(e)
+      add_to_dict(deflang, e.text)
+    end
+  })
+end
+
+-- ---------------------------------------------------------------------------
 -- Hunspell runner
 -- Once all words have been collected, these functions prepare the word list
 -- and pass it to Hunspell.
@@ -214,10 +231,10 @@ end
 -- ---------------------------------------------------------------------------
 
 -- This function runs after document traversal.
--- At this point, the word collection tables should already be populated.
--- It loops over each language seen in the document and runs spellcheck once
--- for that language.
-local function results(el)
+-- It first collects ordinary words from the document body, then loops over
+-- each language seen and runs spellcheck once for that language.
+local function results(doc)
+  collect_body_words(doc)
   for lang,_ in pairs(words) do
     run_spellcheck(lang)
   end
@@ -232,14 +249,11 @@ end
 --   Pass 1. Read metadata and set the default language.
 --   Pass 2: Read metadata and extend the ignore-word list.
 --   Pass 3: Handle Div/Span elements with explicit lang attributes.
---   Pass 4: Collect ordinary Str elements using the default language, then
+--   Pass 4: Collect ordinary Str elements from the document body, then
 --           run the final spellcheck step once at the end.
 return {
   {Meta = get_deflang},
   {Meta = read_ignore_words},
   {Div = checkdiv, Span = checkspan},
-  {
-    Str = function(e) add_to_dict(deflang, e.text) end,
-    Pandoc = results
-  }
+  {Pandoc = results}
 }
