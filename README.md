@@ -1,33 +1,85 @@
 # spellcheck Extension For Quarto
 
-This extension provides a filter to run [Hunspell](https://hunspell.github.io/) every time a `.qmd` file is rendered and prints any misspellings to the console.
+This extension provides a filter to run [Hunspell](https://hunspell.github.io/) whenever a `.qmd` file is rendered and prints potentially misspelled words to the console.
 
-You must have Hunspell installed for this to run.
-For Windows, the [portable version from Chocolately](https://community.chocolatey.org/packages/hunspell.portable) seems to run well (`choco install hunspell.portable`).
-On Mac, you can install with Homebrew (`brew install hunspell`).
+The current version was amended by Amy Heather, based on earlier MIT-licensed work by John MacFarlane and Christopher Kenny:
 
-## Installing
+- John MacFarlane, *spellcheck.lua* in the Pandoc Lua filters repository: <https://github.com/pandoc/lua-filters/blob/master/spellcheck/spellcheck.lua>.
+- Christopher Kenny, Quarto spellcheck extension repository: <https://github.com/christopherkenny/spellcheck/blob/main/_extensions/spellcheck/spellcheck.lua>.
+
+## Requirements
+
+You must have Hunspell installed for this extension to work.
+
+If you want to use British English, make sure the `en_GB` dictionary is installed as well as Hunspell itself. On Ubuntu and Debian, this is typically provided by `hunspell-en-gb`
+
+**Ubuntu/Debian:**
+
+```bash
+sudo apt update
+sudo apt install hunspell hunspell-en-gb
+```
+
+**macOS with Homebrew:**
+
+```bash
+brew install hunspell
+```
+
+**Windows with Chocolatey:**
+
+```bash
+choco install hunspell.portable
+```
+
+## Installing the extension
 
 From a directory with an existing Quarto file or project, run:
 
 ```bash
-quarto add christopherkenny/spellcheck
+quarto add amyheather/spellcheck
 ```
-This will install the extension under the `_extensions` subdirectory.
-If you're using version control, you will want to check in this directory.
 
-## Using
+Quarto installs extensions locally into an `_extensions` directory alongside your project or document, rather than into a global library. If you use version control, you should commit the `_extensions` directory to your repository.
 
-Add the following to your metadata after installing as above.
+## Using the extension
+
+After installation, add the filter to your document YAML or your project-level `_quarto.yml`.
+
+You can specify which language to use (default is British England `en_GB`).
+
+You can also specify words to ignore.
+
+**In a document:**
 
 ```yaml
+---
 filters:
   - spellcheck
+spellcheck-lang: en_GB
+spellcheck-ignore:
+  - ignoreme
+---
 ```
 
-This will print to the console, something which looks like:
+**In `_quarto.yml`:**
 
-```bash
+```yaml
+---
+project:
+  type: default
+
+filters:
+  - spellcheck
+spellcheck-lang: en_GB
+spellcheck-ignore:
+  - ignoreme
+---
+```
+
+When the document is rendered, the filter prints possible misspellings to the console, for example:
+
+```text
 Possibly misspelled words:
 --------------------------
 consol
@@ -36,29 +88,15 @@ spelld
 --------------------------
 ```
 
-The default language used is `en_US`. This can be configured by setting:
-
-```yaml
-spellcheck-lang: en_US
-```
-
-If you specify a spelling language which cannot be found by Hunspell, the program will error.
-
-You can also specify words to ignore:
-
-```yaml
-spellcheck-ignore:
-  - words
-```
-
-Note: This will create a file `.spellcheck.txt` in the current directory which will be automaticaly removed, during normal functioning. If it fails during the Hunspell step, then you may need to remove that file.
-
 ## Example
 
-Here is the source code for a minimal example: [example.qmd](example.qmd).
+A minimal example is provided in [example.qmd](example.qmd).
 
 ## Licensing
 
-The original Lua filter for pandoc is licensed under MIT from [John MacFarlane](https://github.com/pandoc/lua-filters/blob/master/spellcheck/spellcheck.lua).
-All modifications by me are licensed under the MIT license.
-See the [license file](LICENSE) for futher details.
+This repository is based on earlier MIT-licensed code by John MacFarlane and Christopher Kenny:
+
+- John MacFarlane, *spellcheck.lua* in the Pandoc Lua filters repository: <https://github.com/pandoc/lua-filters/blob/master/spellcheck/spellcheck.lua>.
+- Christopher Kenny, Quarto spellcheck extension repository: <https://github.com/christopherkenny/spellcheck>.
+
+Amendments by Amy Heather are also released under the MIT License
