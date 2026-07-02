@@ -72,6 +72,24 @@ local function in_table(tbl, value)
     return false
 end
 
+-- Return true if a word should be excluded from spellchecking.
+-- A word is dropped if it exactly matches any entry in words_to_drop,
+-- or if it contains any entry as a substring (to handle compound tokens
+-- like "MR/Z503915/1]." which contain an ignored word).
+-- Parameters:
+--   word - the word or token to test
+-- Returns:
+--   true if the word should be excluded
+--   false otherwise
+local function should_drop(word)
+  for _, v in ipairs(words_to_drop) do
+    if word == v or word:find(v, 1, true) then
+      return true
+    end
+  end
+  return false
+end
+
 -- Record one word under a given language.
 -- Creates the entry if it doesn't already exist, else increments count.
 -- Parameters:
@@ -82,6 +100,7 @@ end
 -- After calling this twice:
 --   words["en_GB"]["simulation"] == 2
 local function add_to_dict(lang, t)
+  if in_table(words_to_drop, t) then return end
   if not words[lang] then
     words[lang] = {}
   end
@@ -165,7 +184,7 @@ local function run_spellcheck(lang)
   local keys = {}
   local wordlist = words[lang]
   for k,_ in pairs(wordlist) do
-    if not in_table(words_to_drop, k) then
+    if not should_drop(k) then
       keys[#keys + 1] = k
     end
   end
