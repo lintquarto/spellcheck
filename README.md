@@ -1,4 +1,4 @@
-# spellcheck Extension For Quarto
+# spellcheck extension for Quarto
 
 This extension provides a filter to run [Hunspell](https://hunspell.github.io/) whenever a `.qmd` file is rendered and prints potentially misspelled words to the console.
 
@@ -6,6 +6,10 @@ The current version was amended by Amy Heather, based on earlier MIT-licensed wo
 
 - John MacFarlane, *spellcheck.lua* in the Pandoc Lua filters repository: <https://github.com/pandoc/lua-filters/blob/master/spellcheck/spellcheck.lua>.
 - Christopher Kenny, Quarto spellcheck extension repository: <https://github.com/christopherkenny/spellcheck/blob/main/_extensions/spellcheck/spellcheck.lua>.
+
+Amendments in this repository are also released under the MIT Licence.
+
+<br>
 
 ## Requirements
 
@@ -32,6 +36,8 @@ brew install hunspell
 choco install hunspell.portable
 ```
 
+<br>
+
 ## Installing the extension
 
 From a directory with an existing Quarto file or project, run:
@@ -41,6 +47,8 @@ quarto add amyheather/spellcheck
 ```
 
 Quarto installs extensions locally into an `_extensions` directory alongside your project or document, rather than into a global library. If you use version control, you should commit the `_extensions` directory to your repository.
+
+<br>
 
 ## Using the extension
 
@@ -88,15 +96,8 @@ spelld
 --------------------------
 ```
 
+<br>
+
 ## Example
 
 A minimal example is provided in [example.qmd](example.qmd).
-
-## Licensing
-
-This repository is based on earlier MIT-licensed code by John MacFarlane and Christopher Kenny:
-
-- John MacFarlane, *spellcheck.lua* in the Pandoc Lua filters repository: <https://github.com/pandoc/lua-filters/blob/master/spellcheck/spellcheck.lua>.
-- Christopher Kenny, Quarto spellcheck extension repository: <https://github.com/christopherkenny/spellcheck>.
-
-Amendments by Amy Heather are also released under the MIT License
