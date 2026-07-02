@@ -16,21 +16,50 @@
 -- - John MacFarlane (MIT). https://github.com/pandoc/lua-filters/blob/master/spellcheck/spellcheck.lua.
 -- - Chrisopher Kenny (MIT). https://github.com/christopherkenny/spellcheck/blob/main/_extensions/spellcheck/spellcheck.lua.
 
+-- ---------------------------------------------------------------------------
+-- Version check
+-- ---------------------------------------------------------------------------
+
 -- Require a Pandoc version new enough to support pandoc.utils.stringify on metadata.
 if PANDOC_VERSION == nil then
   error("ERROR: pandoc >= 2.1 required for spellcheck.lua filter")
 end
 
--- Unique words grouped by language - words[lang][word] = count
+-- ---------------------------------------------------------------------------
+-- Shared state
+-- These objects hold information while Pandoc walks through the document.
+-- ---------------------------------------------------------------------------
+
+-- A nested table of unique words, grouped by language
+-- Shape:
+--   words[lang][word] = count
+-- Examples:
+--   words["en_GB"]["colour"] = 3
+--   words["fr"]["bonjour"] = 1
 local words = {}
 
 -- Words to ignore even if Hunspell flags them.
+-- This is a starting list built into the filter.
+-- Extra ignored words can also be added from the metadata.
 local words_to_drop = {"Doi"}
 
--- Default language (set via document metadata)
+-- Default spellcheck language.
+-- This is set from document metadata in get_deflang().
+-- If metadata does not provide a value, we fall back to en_GB.
 local deflang
 
+-- ---------------------------------------------------------------------------
+-- Small helper functions
+-- These are generic utility functions used by the main filter logic.
+-- ---------------------------------------------------------------------------
+
 -- Return true if a value exists in a list-like table
+-- Parameters:
+--   tbl - a sequential Lua table
+--   value - the value to search for
+-- Returns:
+--   true if value is found
+--   false otherwise
 local function in_table(tbl, value)
     if tbl == nil then
         return false
@@ -44,7 +73,14 @@ local function in_table(tbl, value)
 end
 
 -- Record one word under a given language.
--- Creates the language entry the first time it is seen.
+-- Creates the entry if it doesn't already exist, else increments count.
+-- Parameters:
+--   lang - dictionary/language key (e.g., "en_GB")
+--   t - the word to record
+-- Example:
+--   add_to_dict("en_GB", "simulation")
+-- After calling this twice:
+--   words["en_GB"]["simulation"] == 2
 local function add_to_dict(lang, t)
   if not words[lang] then
     words[lang] = {}
@@ -52,9 +88,17 @@ local function add_to_dict(lang, t)
   words[lang][t] = (words[lang][t] or 0) + 1
 end
 
--- Read default spellcheck language from metadata
+-- ---------------------------------------------------------------------------
+-- Metadata readers
+-- These functions run on the document metadata before the main text traversal.
+-- ---------------------------------------------------------------------------
+
+-- Read default spellcheck language from metadata.
 -- YAML example:
--- spellcheck-lang: en_GB
+--   spellcheck-lang: en_GB
+-- If the metadata field is absent, use en_US.
+-- We use stringify as metadata values are Pandoc objects, not always plain Lua
+-- strings, so pandoc.utils.stringify converts them into normal text we can use.
 local function get_deflang(meta)
   deflang = (meta['spellcheck-lang'] and pandoc.utils.stringify(meta['spellcheck-lang'])) or 'en_GB'
   return nil
@@ -62,9 +106,11 @@ end
 
 -- Read additional ignore words from metadata
 -- YAML example:
--- spellcheck-ignore:
---   - SimPy
---   - Quarto
+--   spellcheck-ignore:
+--     - SimPy
+--     - Quarto
+-- Each listed value is converted to plain text and appended to
+-- words_to_drop, so these words will be skipped before Hunspell runs.
 local function read_ignore_words(meta)
   local env = meta['spellcheck-ignore']
   if env ~= nil then
@@ -75,8 +121,15 @@ local function read_ignore_words(meta)
   end
 end
 
--- Handle inline spans with explicit language:
--- <span lang="fr">bonjour</span>
+-- ---------------------------------------------------------------------------
+-- Language-specific text collectors
+-- These functions handle parts of the document that explicitly declare a
+-- language via the lang attribute.
+-- ---------------------------------------------------------------------------
+
+-- Handle inline spans with explicit language
+-- Example:
+--   <span lang="fr">bonjour</span>
 local function checkspan(el)
   local lang = el.attributes.lang
   if not lang then return nil end
@@ -85,9 +138,10 @@ local function checkspan(el)
 end
 
 -- Handle block elements with explicit language:
--- ::: {lang="de"}
--- text
--- :::
+-- Example:
+--   ::: {lang="de"}
+--   text
+--   :::
 local function checkdiv(el)
   local lang = el.attributes.lang
   if not lang then return nil end
@@ -95,13 +149,21 @@ local function checkdiv(el)
   return nil
 end
 
--- Run Hunspell on all collected words for a given language
+-- ---------------------------------------------------------------------------
+-- Hunspell runner
+-- Once all words have been collected, these functions prepare the word list
+-- and pass it to Hunspell.
+-- ---------------------------------------------------------------------------
+
+-- Run Hunspell on all collected words for a given language.
+-- Parameters:
+--   lang - language/dictionary name, e.g. "en_US" or "en_GB"
 local function run_spellcheck(lang)
-  -- Prepare list of collected words for Hunspell
-  -- Collect unique words (keys of words[lang])
+
+  -- Collect the unique words for this language.
+  -- The keys of words[lang] are the distinct words we saw in the document.
   local keys = {}
   local wordlist = words[lang]
-
   for k,_ in pairs(wordlist) do
     if not in_table(words_to_drop, k) then
       keys[#keys + 1] = k
@@ -111,12 +173,13 @@ local function run_spellcheck(lang)
   -- Run Hunspell via pandoc.pipe
   -- -l: list misspelled words
   -- -d: dictionary (language)
-  -- -p: personal dictionary file
+  -- table.concat(keys, "\n") creates the newline-separated input expected by
+  -- hunspell when reading from standard input.
   local success, outp = pcall(function()
     return pandoc.pipe('hunspell', { '-l', '-d', lang}, table.concat(keys, '\n'))
   end)
 
-  -- Output results or warning
+  -- Print results if hunspell succeeded, otherwise show a warning.
   if success then
     print('Possibly misspelled words:')
     print('--------------------------')
@@ -127,19 +190,31 @@ local function run_spellcheck(lang)
   end
 end
 
--- Final callback after document traversal.
--- At this point, all words should already have been collected.
+-- ---------------------------------------------------------------------------
+-- Final reporting step
+-- ---------------------------------------------------------------------------
+
+-- This function runs after document traversal.
+-- At this point, the word collection tables should already be populated.
+-- It loops over each language seen in the document and runs spellcheck once
+-- for that language.
 local function results(el)
   for lang,_ in pairs(words) do
     run_spellcheck(lang)
   end
 end
 
--- Register filter passes in a deliberate order:
--- 1. Read metadata first.
--- 2. Handle language-specific containers.
--- 3. Collect ordinary words in the default language.
--- 4. Run spellcheck once at the end.
+-- ---------------------------------------------------------------------------
+-- Filter registration
+-- ---------------------------------------------------------------------------
+
+-- Pandoc Lua filters are returned as a list of filter passes.
+-- This filter runs in four stages:
+--   Pass 1. Read metadata and set the default language.
+--   Pass 2: Read metadata and extend the ignore-word list.
+--   Pass 3: Handle Div/Span elements with explicit lang attributes.
+--   Pass 4: Collect ordinary Str elements using the default language, then
+--           run the final spellcheck step once at the end.
 return {
   {Meta = get_deflang},
   {Meta = read_ignore_words},
