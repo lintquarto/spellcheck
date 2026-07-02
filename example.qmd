@@ -3,7 +3,7 @@ title: "Spellcheck Example"
 format: typst
 filters:
   - spellcheck
-spellcheck-lang: en_US
+spellcheck-lang: en_GB
 spellcheck-ignore:
   - ignoreme
 ---
