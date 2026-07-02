@@ -56,7 +56,7 @@ end
 -- YAML example:
 -- spellcheck-lang: en_GB
 local function get_deflang(meta)
-  deflang = (meta['spellcheck-lang'] and pandoc.utils.stringify(meta['spellcheck-lang'])) or 'en_US'
+  deflang = (meta['spellcheck-lang'] and pandoc.utils.stringify(meta['spellcheck-lang'])) or 'en_GB'
   return nil
 end
 
