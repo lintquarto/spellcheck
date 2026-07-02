@@ -43,7 +43,7 @@ choco install hunspell.portable
 From a directory with an existing Quarto file or project, run:
 
 ```bash
-quarto add amyheather/spellcheck
+quarto add lintquarto/spellcheck
 ```
 
 Quarto installs extensions locally into an `_extensions` directory alongside your project or document, rather than into a global library. If you use version control, you should commit the `_extensions` directory to your repository.
