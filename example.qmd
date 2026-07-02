@@ -6,8 +6,11 @@ filters:
 spellcheck-lang: en_GB
 spellcheck-ignore:
   - ignoreme
+  - MR/Z503915/1
 ---
 
 ## Heading
 
 This filter prints a spellcheck to the consol. Words that are not spelld correctly will be listd. Words that are listed in the ignore, like ignoreme, are skipped. Note that ignoreme does not print to the console.
+
+This is an example of a grant number: MR/Z503915/1.
