@@ -98,10 +98,45 @@ spelld
 
 <br>
 
-## Example
+## Running spellcheck
 
-A minimal example is provided:
+The extension will run when the document is rendered. A minimal example is provided:
 
 ```
 quarto render example.qmd
+```
+
+To run it without running code:
+
+```
+quarto render example.qmd --metadata execute.eval=false
+```
+
+To run spellcheck via a GitHub action:
+
+```
+name: spellcheck
+
+on:
+  push:
+
+jobs:
+  spellcheck:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Quarto
+        uses: quarto-dev/quarto-actions/setup@v2
+
+      - name: Install Hunspell
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y hunspell hunspell-en-gb
+
+      - name: Run spellcheck render
+        run: |
+          quarto render . --metadata execute.eval=false
 ```
